@@ -1,0 +1,30 @@
+FROM node:20
+
+# Instalar herramientas adicionales y limpiar lista de paquetes
+RUN apt-get update && \
+    apt-get install -y wget nano postgresql postgresql-contrib && \
+    rm -rf /var/lib/apt/lists/*
+
+# Actualizar npm y limpiar cache
+RUN npm install -g npm@8.12.1 && npm cache clean --force
+
+# Crear directorio de trabajo
+WORKDIR /jue/APIjuegos
+
+# Copiar archivos de package.json y package-lock.json
+COPY juegos/package*.json ./
+
+# Instalar dependencias del proyecto (evita instalar globalmente)
+RUN npm install
+
+# Copiar el resto de los archivos del proyecto
+COPY juegos/ ./
+
+# Generar cliente de Prisma
+RUN npx prisma generate
+
+# Exponer el puerto que usará la aplicación
+EXPOSE 3400
+
+# Comando para iniciar la aplicación
+CMD ["npx", "nodemon", "app.js"]

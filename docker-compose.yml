@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # API de Usuarios
+  api_usuarios:
+    build:
+      context: ./APIS
+      dockerfile: Dockerfile.usuarios
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 2GB
+        reservations:
+          cpus: '0.1'
+          memory: 1GB
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./APIS/usuarios:/usr/APIusuarios
+    networks:
+      - dev_network
+
+  # Base de datos de Usuarios
+  usuarios_db:
+    build:
+      context: ./APIS
+      dockerfile: Dockerfile.postgres
+    container_name: usuarios_db
+    environment:
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: usuarios_db
+    ports:
+      - "5100:5432"
+    volumes:
+      - ./datos/usuarios_data:/var/lib/postgresql/data
+      - ./registros/usuarios_logs:/var/log/postgresql
+      - ./APIS/configuracion.postgresql/postgresql.conf:/etc/postgresql/postgresql.conf
+    networks:
+      - dev_network
+
+  # API de Juegos
+  api_juegos:
+    build:
+      context: ./APIS
+      dockerfile: Dockerfile.juegos
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 2GB
+        reservations:
+          cpus: '0.1'
+          memory: 1GB
+    ports:
+      - "3200:3200"
+    volumes:
+      - ./APIS/juegos:/ord/APIjuegos
+    networks:
+      - dev_network
+
+  # Base de datos de Juegos
+  juegos_db:
+    build:
+      context: ./APIS
+      dockerfile: Dockerfile.postgres
+    container_name: juegos_db
+    environment:
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: juegos_db
+    ports:
+      - "5200:5432"
+    volumes:
+      - ./datos/juegos_data:/var/lib/postgresql/data
+      - ./registros/juegos_logs:/var/log/postgresql
+      - ./APIS/configuracion.postgresql/postgresql.conf:/etc/postgresql/postgresql.conf
+    networks:
+      - dev_network
+
+  # Web Server (nginx)
+  webserver:
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - api_juegos
+      - api_usuarios
+    networks:
+      - dev_network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend_cas
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "4000:3000"
+    networks:
+      - dev_network
+    depends_on:
+      - api_juegos
+      - api_usuarios
+    environment:
+      - PORT=3000
+
+  # PGAdmin
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: dev_pgadmin
+    ports:
+      - "8888:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: alejo@correo.com
+      PGADMIN_DEFAULT_PASSWORD: 12345
+    volumes:
+      - ./datos/pgadmin.data:/var/lib/pgadmin
+    depends_on:
+      - juegos_db
+      - usuarios_db
+    networks:
+      - dev_network
+
+# Definición de la red para todos los servicios
+networks:
+  dev_network:
+    driver: bridge

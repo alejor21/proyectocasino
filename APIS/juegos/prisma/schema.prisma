@@ -1,0 +1,15 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL_JUEGOS")
+}
+
+model Apuesta {
+  id     Int      @id @default(autoincrement())
+  monto  Float
+  fecha  DateTime @default(now())
+}
